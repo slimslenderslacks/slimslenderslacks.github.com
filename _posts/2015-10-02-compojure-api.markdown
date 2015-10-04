@@ -7,13 +7,15 @@ categories: productivity
 
 ## Compojure API
 
-There are quite a few nice ways to do this but I really like [the compojure api project](https://github.com/metosin/compojure-api).  Try it out by [installing leiningen](http://leiningen.org/) and then type into your shell the following three commands:
+I've been looking at different ways of designing and implementing REST apis using clojure and my favorite project so far is [compojure api](https://github.com/metosin/compojure-api).  You can try it out by [installing leiningen](http://leiningen.org/) and typing the following three commands:
 
     ~$ lein new compojure-api api-test
     ~$ cd api-test
     ~$ lein ring server-headless
 
-You'll end up with a Jetty server running on [http://localhost:3000](http://localhost:3000) hosting your resources, complete with a [Swagger 2.0 description](https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md).  This template pulls in a set of useful libraries:
+At the end of this, you'll have a jetty server running on [http://localhost:3000](http://localhost:3000).  Besides hosting a few test resources, you'll also have an automatically generated [Swagger 2.0 description](https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md) of your api.  
+
+The "compojure-api" template pulls in a set of useful libraries:
 
 * Jetty for the underlying servlet container
 * [Jackson](https://github.com/FasterXML/jackson) for JSON encoding/decoding
@@ -23,11 +25,11 @@ You'll end up with a Jetty server running on [http://localhost:3000](http://loca
 * a set of libraries enabling all resources to support json, yaml, yaml-http, and transit representations
 * the [prismatic schema library](https://github.com/Prismatic/schema) for validating the schema of both incoming and outgoing resources.
 
-You'll also notice that the entire project has only one file in it's src directory.  The src/api_test/handlcer.clj file contains exactly 3 clojure forms.  
+You'll also notice that the entire project has only one src file (src/test_api/handler.clj).  This file contains exactly 3 forms.  
 
-1.  an `(ns test-api.handler ... )` form to populate this namespace with the symbols and vars you'll need to construct your api
-2.  a  `(s/defschema ...)` expression to create one schema definition (this template creates a single sample resource)
-3.  a `(defapi ... )` expression which is the definition of the new api
+1.  the `(ns test-api.handler ... )` form populates this namespace with the symbols and vars you'll need to construct your api
+2.  the  `(s/defschema ...)` form creates a schema definition (this template creates a single sample resource)
+3.  the `(defapi ... )` form describes the api
 
 The last of the 3 expressions is shown here:
 
@@ -53,7 +55,7 @@ There are 3 nested expressions making up this definition:
 2.  `(swagger-docs ...)` creates and mounts Swagger 2.0 descriptions at [http://localhost:3000/swagger.json](http://localhost:3000/swagger.json).
 3.  the final expression declares that the resource described by the schema `Message` is bound to `/hello` and supports the GET method.
 
-You could extend to include a PUT operation with a uri template including a name parameter:
+You could extend this to include a PUT operation, with a uri template including a name parameter:
 
 {% highlight clojure %}
 (context* "/hello" []
@@ -74,15 +76,15 @@ You could extend to include a PUT operation with a uri template including a name
       (created "successfully created")))))
 {% endhighlight %}
 
-After saving this change, refresh your swagger page at [http://localhost:3000](http://localhost:3000).  You'll see your new PUT operation immediately because you started this application in a "dev" mode, which automatically reloads a namespace whenever it's src file is saved.
+After saving this change, refresh your swagger page at [http://localhost:3000](http://localhost:3000).  You'll see your new PUT operation immediately because you started this application in a "dev" mode.   This mode automatically reloads any namespaces impacted by a src file change.
 
 ### Code and Data
 
-The `(context* ...)` expression above should be thought of as both code and data.  While designing the api, we will most likely prefer to think of it as data.  In fact, during evaluation of this expression, the `(defapi ...)` macro treats it as data too!  The macro will walk the un-evaluated data structure and use it to create the application's swagger data.  Those familiar with Swagger will notice a similarity between the above expression and the Swagger syntax for an `Operation`.  
+The `(context* ...)` expression above should be thought of as both code and data.  While designing the api, we will most likely prefer to think of it as data.  In fact, during evaluation of this expression, the `(defapi ...)` macro will treat the expression as unevaluated data too!  The macro walks the data structure and uses it to create the application's swagger data.  Those familiar with Swagger will notice an obvious structural similarity between the above expression and the Swagger syntax for an `Operation`.  
 
-Of course, we also evaluate the expression.  Successful evaluation will set up all of the handlers for the resources we've described.  To put it another way, evaluation of this expression generates the application's controller layer.  
+Of course, running the program will evaluate the expression, and create a set of runtime handlers.  To put it another way, evaluation of this expression generates the application's controller layer.  
 
-I think this is an elegant example of a single data structure being used as both program code and data.  Seen as data, it describes our API.  Seen as program instructions, it can be evaluated to setup our runtime handlers.  
+This is an elegant example of a single data structure being used as both program code and data.  Seen as data, it describes our API.  Seen as program instructions, it evaluates to setup our runtime handlers.  
 
 The runtime handlers themselves also have some very interesting properties:
 
@@ -100,7 +102,7 @@ Even in some projects where we've decided to predominantly use Java, we've found
   (created (.execute (com.example.Operation. name) body)))
 {% endhighlight %}
 
-Note that the `body` and the `name` values were destructured from the original request.  This will actually validate that the `execute` method returns a String at runtime.
+Note that the `body` and the `name` values were destructured from the original request.  This will actually validate that the `execute` method returns a `java.lang.String` at runtime.
 
 This means that the entire definition of the API contract is currently written into a single file.  This certainly does not have to remain the case.  In fact, we already have several large projects where we've decided to break up some of our definitions into different files.  However, the data contributing to the overall contract of the API is very localized.  The remaining code of the app (the handler logic) might not even be written in Clojure!
 
